@@ -1,0 +1,71 @@
+#!/usr/bin/env python
+# -*-   coding: utf-8 -*-
+import os
+import sys
+import re
+from argparse import ArgumentParser
+try:
+    import xml.etree.CElementTree as ET
+except:
+    import xml.etree.ElementTree as ET
+
+ROOT_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+if ROOT_PATH not in sys.path:
+    sys.path.insert(0, ROOT_PATH)
+
+from epg.connect import get, post, json_load
+from epg.epg import process_gdtv, process_tvsou
+from core.lib.model import Vod
+
+
+def get_channel(gid):
+    file_path = os.path.join(ROOT_PATH, 'epg', 'tvs.xml')
+    if not os.path.exists(file_path):
+        print('tvs.xml file not exists.')
+        sys.exit(1)
+    tree = ET.parse(file_path)
+    root = tree.getroot()
+    channels = dict()
+    for child in root:
+        channels[child.attrib['gid']] = child.attrib['cid']
+    return channels.get(gid)
+
+
+def process(args):
+    gid = args.gid
+    date = args.date
+    regex = r'^\d{4}-\d{2}-\d{2}'
+    if not re.match(regex, date):
+        print('Please enter the correct date format')
+        sys.exit(1)
+    channel = get_channel(gid)
+    if not channel:
+        print('Please enter an existing channel.')
+        sys.exit(1)
+    if isinstance(channel, int):
+        data = process_gdtv(channel, date)
+    else:
+        data = process_tvsou(channel, date.replace('-', ''))
+    if not data:
+        print('Program acquisition failed')
+        sys.exit(1)
+    query = date + '%'
+    Vod.delete().where(Vod.gid == gid, Vod.time ** query).execute()
+    for idx in range(len(data)):
+        data[idx]['classes'] = 1
+        data[idx]['subclass'] = 1
+        data[idx]['gid'] = gid
+        data[idx]['store_path'] = '/data/' + gid
+    Vod.insert_many(data).execute()
+    sys.exit(0)
+
+
+def main():
+    parser = ArgumentParser()
+    parser.add_argument('gid', type=str, help='enter channel gid')
+    parser.add_argument('date', type=str, help='crawl date, eg: 2018-01-01')
+    args = parser.parse_args()
+    process(args)
+
+if __name__ == '__main__':
+    main()
