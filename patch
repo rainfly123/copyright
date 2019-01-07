@@ -4,6 +4,7 @@ import os
 import sys
 import re
 from argparse import ArgumentParser
+import mysql
 try:
     import xml.etree.CElementTree as ET
 except:
@@ -14,21 +15,15 @@ if ROOT_PATH not in sys.path:
     sys.path.insert(0, ROOT_PATH)
 
 from epg.connect import get, post, json_load
+from epg.log import LOG
 from epg.epg import process_gdtv, process_tvsou
-from core.lib.model import Vod
-
 
 def get_channel(gid):
-    file_path = os.path.join(ROOT_PATH, 'epg', 'tvs.xml')
-    if not os.path.exists(file_path):
-        print('tvs.xml file not exists.')
+    epg = mysql.getLiveEpg(gid)
+    if not epg:
+        LOG.error('Channel gid not exists.')
         sys.exit(1)
-    tree = ET.parse(file_path)
-    root = tree.getroot()
-    channels = dict()
-    for child in root:
-        channels[child.attrib['gid']] = child.attrib['cid']
-    return channels.get(gid)
+    return epg['channel_id'], epg['origin']
 
 
 def process(args):
@@ -36,27 +31,30 @@ def process(args):
     date = args.date
     regex = r'^\d{4}-\d{2}-\d{2}'
     if not re.match(regex, date):
-        print('Please enter the correct date format')
+        LOG.error('Please enter the correct date format')
         sys.exit(1)
-    channel = get_channel(gid)
+    channel, origin = get_channel(gid)
     if not channel:
-        print('Please enter an existing channel.')
+        LOG.error('Please enter an existing channel.')
         sys.exit(1)
-    if isinstance(channel, int):
+    data = dict()
+    if origin == 'gdtv':
         data = process_gdtv(channel, date)
-    else:
+    elif origin == 'tvsou':
         data = process_tvsou(channel, date.replace('-', ''))
+
     if not data:
-        print('Program acquisition failed')
+        LOG.error('Program acquisition failed')
         sys.exit(1)
     query = date + '%'
-    Vod.delete().where(Vod.gid == gid, Vod.time ** query).execute()
     for idx in range(len(data)):
         data[idx]['classes'] = 1
         data[idx]['subclass'] = 1
         data[idx]['gid'] = gid
         data[idx]['store_path'] = '/data/' + gid
-    Vod.insert_many(data).execute()
+    for program in data:
+        #LOG.info(gid, program['program_name'], program['time'], "/data/" + gid)
+        mysql.UpdateEPG(gid, program['program_name'], program['time'], "/data/" + gid)
     sys.exit(0)
 
 

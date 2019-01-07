@@ -4,6 +4,8 @@ import urllib
 import urllib2
 import cookielib
 
+from log import LOG
+
 CKJ = cookielib.CookieJar()
 OPENER = urllib2.build_opener(urllib2.HTTPCookieProcessor(CKJ))
 
@@ -53,7 +55,7 @@ def post(url, values={}, ctype='json'):
     # except (urllib2.HTTPError, urllib2.URLError) as ex:
     #     LOG.error('Connection error:[%s]' % ex)
     except Exception as exp:
-        print('Connection error:[%s]' % exp)
+        LOG.error('Connection error:[%s]' % exp)
     return None
 
 
@@ -72,7 +74,7 @@ def get(url, ctype='json'):
     # except (urllib2.HTTPError, urllib2.URLError) as err:
     #     LOG.error('Connection error:[%s]' % err)
     except Exception as exp:
-        print('Connection error:[%s]' % exp)
+        LOG.error('Connection error:[%s]' % exp)
     return None
 
 
