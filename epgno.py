@@ -137,12 +137,21 @@ def save_program(gid, data):
         find3 = p.findall(name)
         if len(find1) > 0 and len(find2) == 0 and len(find3) == 0 :
             print name , gid,  time
+            i = data.index(program)
+            if (i + 1) == len(data):
+                which = i
+            else:
+                which = i + 1
+            nextprogram = data[which]
             start = datetime.datetime.strptime(time, "%Y-%m-%d %H:%M:%S")
-            end = datetime.datetime.strptime(time, "%Y-%m-%d %H:%M:%S") + datetime.timedelta(seconds=9000)
+            if which != i :
+                end = datetime.datetime.strptime(nextprogram['time'], "%Y-%m-%d %H:%M:%S") - datetime.timedelta(seconds=60)
+            else:
+                end = datetime.datetime.strptime(time, "%Y-%m-%d %H:%M:%S") + datetime.timedelta(seconds=9000)
             if start.day != end.day:
-                end = datetime.datetime(start.year, start.month, start.day + 1) - datetime.timedelta(seconds=30)
+                end = datetime.datetime(start.year, start.month, start.day + 1) - datetime.timedelta(seconds=60)
                 start2 = datetime.datetime(start.year, start.month, start.day + 1) 
-                end2 = datetime.datetime(start.year, start.month, start.day + 1)  + datetime.timedelta(seconds=9000)
+                end2 = datetime.datetime(start.year, start.month, start.day + 1)  + datetime.timedelta(seconds=18000)
                 mysql.UpdateLiveTask(gid, name, start, end)
                 mysql.UpdateLiveTask(gid, name, start2, end2)
             else:
