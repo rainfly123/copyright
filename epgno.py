@@ -93,7 +93,6 @@ def process_gdtv(cid, date, retry=3):
     return datas
 
 
-#def run_tvsou(channels=[{'gid':'cctv5', 'cid':"6b26bee1"}]):
 def run_tvsou(channels=[{'gid':'cctv5', 'cid':"6b26bee1"},{'gid':"cctv5p", "cid":"e4e3801d"}]):
     '''
     获取搜视网的非广东电视频道的节目
@@ -108,7 +107,7 @@ def run_tvsou(channels=[{'gid':'cctv5', 'cid':"6b26bee1"},{'gid':"cctv5p", "cid"
     return result
 
 
-def run_gdtv(channels=None):
+def run_gdtv(channels=[{"gid":"gdty", "cid":"3"}]):
     '''
     获取广东本地的电视节目
     '''
@@ -125,17 +124,18 @@ def run_gdtv(channels=None):
 
 
 def save_program(gid, data):
-    pattern = re.compile(u'亚洲杯')
-    pn = re.compile(u'录像')
-    p = re.compile(u'足球之夜')
+    pattern = re.compile(u'中超')
+    #pn = re.compile(u'录像')
+    #p = re.compile(u'足球之夜')
     for program in data:
         #print(gid, program['program_name'], program['time'], "/data/" + gid)
         name = program['program_name']
         time = program['time']
         find1 = pattern.findall(name)
-        find2 = pn.findall(name)
-        find3 = p.findall(name)
-        if len(find1) > 0 and len(find2) == 0 and len(find3) == 0 :
+        #find2 = pn.findall(name)
+        #find3 = p.findall(name)
+        #if len(find1) > 0 and len(find2) == 0 and len(find3) == 0 :
+        if len(find1) > 0 :
             print name , gid,  time
             i = data.index(program)
             if (i + 1) == len(data):
@@ -160,9 +160,9 @@ def save_program(gid, data):
 
 
 def main():
-    #data1 = run_gdtv()
+    data1 = run_gdtv()
     data2 = run_tvsou()
-    result = data2
+    result = dict(data1.items() + data2.items())
     for key, val in result.items():
         if not val:
             LOG.error('[%s]channel clawl failed.' % key)
